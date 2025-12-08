@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { 
-  Heart, 
   Brain, 
   Zap, 
   Moon, 
@@ -12,7 +12,9 @@ import {
   Settings,
   Bell,
   Search,
-  ChevronRight
+  ChevronRight,
+  TrendingUp,
+  User
 } from "lucide-react";
 import ParticleBackground from "@/components/ParticleBackground";
 import GlassCard from "@/components/GlassCard";
@@ -22,11 +24,35 @@ import VitalsTile from "@/components/VitalsTile";
 import AIGuardianOrb from "@/components/AIGuardianOrb";
 import InterventionCard from "@/components/InterventionCard";
 import EmotionalTimeline from "@/components/EmotionalTimeline";
+import DemoBadge from "@/components/DemoBadge";
+import ProfileSheet from "@/components/ProfileSheet";
+import SettingsSheet from "@/components/SettingsSheet";
+import NotificationsSheet from "@/components/NotificationsSheet";
+import ImprovementTasks from "@/components/ImprovementTasks";
+import SessionGuide from "@/components/SessionGuide";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const isDemo = searchParams.get("demo") === "true";
+
   const [stressLevel] = useState(35);
   const [showGuardianChat, setShowGuardianChat] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [improvementSheet, setImprovementSheet] = useState<{
+    open: boolean;
+    type: "stress" | "focus" | "energy" | "sleep" | "mood";
+  }>({ open: false, type: "stress" });
+  const [sessionGuide, setSessionGuide] = useState<{
+    open: boolean;
+    type: "breathe" | "focus" | "rest";
+    title: string;
+    duration: number;
+  }>({ open: false, type: "breathe", title: "", duration: 0 });
 
   const timelineData = [
     { time: "6AM", value: 20, event: "Morning routine" },
@@ -47,9 +73,32 @@ const Dashboard = () => {
     return "critical";
   };
 
+  const handleExitDemo = () => {
+    navigate("/");
+  };
+
+  const handleStartSession = (type: "breathe" | "focus" | "rest", title: string, duration: number) => {
+    setSessionGuide({ open: true, type, title, duration });
+  };
+
+  const handleImprove = (type: "stress" | "focus" | "energy" | "sleep" | "mood") => {
+    setImprovementSheet({ open: true, type });
+  };
+
+  const handleEmergencySOS = () => {
+    toast({
+      title: "Emergency Support Activated",
+      description: "Connecting you to crisis resources. Stay calm, help is on the way.",
+      variant: "destructive",
+    });
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       <ParticleBackground />
+
+      {/* Demo Mode Badge */}
+      {isDemo && <DemoBadge onExit={handleExitDemo} />}
 
       {/* Top Navigation Bar */}
       <nav className="relative z-20 flex items-center justify-between px-6 py-4 border-b border-border/30 backdrop-blur-sm">
@@ -74,16 +123,27 @@ const Dashboard = () => {
               className="bg-transparent text-sm outline-none w-40 placeholder:text-muted-foreground/50"
             />
           </div>
-          <button className="relative p-2 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors">
+          <button 
+            onClick={() => setShowNotifications(true)}
+            className="relative p-2 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+          >
             <Bell className="w-5 h-5 text-muted-foreground" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
           </button>
-          <button className="p-2 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors">
+          <button 
+            onClick={() => setShowSettings(true)}
+            className="p-2 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+          >
             <Settings className="w-5 h-5 text-muted-foreground" />
           </button>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/30 flex items-center justify-center">
-            <span className="text-sm font-orbitron text-primary">JD</span>
-          </div>
+          <button 
+            onClick={() => setShowProfile(true)}
+            className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/30 flex items-center justify-center hover:scale-105 transition-transform"
+          >
+            <span className="text-sm font-orbitron text-primary">
+              {isDemo ? "DS" : "JD"}
+            </span>
+          </button>
         </div>
       </nav>
 
@@ -95,46 +155,74 @@ const Dashboard = () => {
             <h3 className="text-sm font-orbitron uppercase tracking-wider text-muted-foreground mb-4">
               Live Vitals
             </h3>
-            <VitalsTile
-              title="Heart Rate"
-              value={72}
-              unit="BPM"
-              icon={Heart}
-              trend="stable"
-              color="cyan"
-            />
-            <VitalsTile
-              title="Stress Score"
-              value={stressLevel}
-              unit="%"
-              icon={Brain}
-              trend="down"
-              color="violet"
-            />
-            <VitalsTile
-              title="Focus Level"
-              value={85}
-              unit="%"
-              icon={Target}
-              trend="up"
-              color="green"
-            />
-            <VitalsTile
-              title="Energy Level"
-              value={68}
-              unit="%"
-              icon={Zap}
-              trend="stable"
-              color="amber"
-            />
-            <VitalsTile
-              title="Sleep Quality"
-              value={7.5}
-              unit="hrs"
-              icon={Moon}
-              trend="up"
-              color="violet"
-            />
+            <div className="relative group">
+              <VitalsTile
+                title="Stress Score"
+                value={stressLevel}
+                unit="%"
+                icon={Brain}
+                trend="down"
+                color="violet"
+              />
+              <button 
+                onClick={() => handleImprove("stress")}
+                className="absolute top-2 right-2 px-2 py-1 rounded-md bg-violet-500/20 text-violet-400 text-xs font-orbitron opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+              >
+                <TrendingUp className="w-3 h-3" />
+                Improve
+              </button>
+            </div>
+            <div className="relative group">
+              <VitalsTile
+                title="Focus Level"
+                value={85}
+                unit="%"
+                icon={Target}
+                trend="up"
+                color="green"
+              />
+              <button 
+                onClick={() => handleImprove("focus")}
+                className="absolute top-2 right-2 px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-400 text-xs font-orbitron opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+              >
+                <TrendingUp className="w-3 h-3" />
+                Improve
+              </button>
+            </div>
+            <div className="relative group">
+              <VitalsTile
+                title="Energy Level"
+                value={68}
+                unit="%"
+                icon={Zap}
+                trend="stable"
+                color="amber"
+              />
+              <button 
+                onClick={() => handleImprove("energy")}
+                className="absolute top-2 right-2 px-2 py-1 rounded-md bg-amber-500/20 text-amber-400 text-xs font-orbitron opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+              >
+                <TrendingUp className="w-3 h-3" />
+                Improve
+              </button>
+            </div>
+            <div className="relative group">
+              <VitalsTile
+                title="Sleep Quality"
+                value={7.5}
+                unit="hrs"
+                icon={Moon}
+                trend="up"
+                color="violet"
+              />
+              <button 
+                onClick={() => handleImprove("sleep")}
+                className="absolute top-2 right-2 px-2 py-1 rounded-md bg-violet-500/20 text-violet-400 text-xs font-orbitron opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+              >
+                <TrendingUp className="w-3 h-3" />
+                Improve
+              </button>
+            </div>
           </div>
 
           {/* Center Panel - Digital Twin & Stress Aura */}
@@ -174,12 +262,17 @@ const Dashboard = () => {
 
               {/* Quick Actions */}
               <div className="flex gap-3 mt-6">
-                {["Breathe", "Focus", "Rest"].map((action) => (
+                {[
+                  { label: "Breathe", type: "breathe" as const, duration: 60 },
+                  { label: "Focus", type: "focus" as const, duration: 1500 },
+                  { label: "Rest", type: "rest" as const, duration: 300 },
+                ].map((action) => (
                   <button
-                    key={action}
+                    key={action.label}
+                    onClick={() => handleStartSession(action.type, `${action.label} Session`, action.duration)}
                     className="px-4 py-2 rounded-lg bg-muted/30 border border-border/30 text-sm font-orbitron text-muted-foreground hover:text-primary hover:border-primary/30 transition-all hover:scale-105"
                   >
-                    {action}
+                    {action.label}
                   </button>
                 ))}
               </div>
@@ -203,6 +296,7 @@ const Dashboard = () => {
               duration="30 sec"
               icon={Wind}
               type="micro"
+              onStart={() => handleStartSession("breathe", "Quick Breathe", 30)}
             />
             <InterventionCard
               title="Deep Focus"
@@ -210,6 +304,7 @@ const Dashboard = () => {
               duration="25 min"
               icon={Target}
               type="focus"
+              onStart={() => handleStartSession("focus", "Deep Focus Session", 1500)}
             />
             <InterventionCard
               title="Recovery Break"
@@ -217,6 +312,7 @@ const Dashboard = () => {
               duration="10 min"
               icon={Leaf}
               type="recovery"
+              onStart={() => handleStartSession("rest", "Recovery Break", 600)}
             />
             <InterventionCard
               title="Connect"
@@ -224,6 +320,7 @@ const Dashboard = () => {
               duration="5 min"
               icon={Users}
               type="social"
+              onStart={() => toast({ title: "Connecting...", description: "Finding available study buddies nearby." })}
             />
           </div>
         </div>
@@ -246,6 +343,7 @@ const Dashboard = () => {
               icon={AlertTriangle}
               type="emergency"
               className="h-full"
+              onStart={handleEmergencySOS}
             />
           </div>
         </div>
@@ -260,7 +358,7 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* AI Chat Panel (hidden by default) */}
+      {/* AI Chat Panel */}
       {showGuardianChat && (
         <div className="fixed bottom-28 right-8 z-50 w-80 animate-scale-in">
           <GlassCard>
@@ -274,7 +372,10 @@ const Dashboard = () => {
             <div className="space-y-3 max-h-60 overflow-y-auto mb-4">
               <div className="p-3 bg-muted/30 rounded-xl">
                 <p className="text-sm text-muted-foreground">
-                  I notice your stress levels have been manageable today. Great work on that morning routine! Would you like a quick focus boost?
+                  {isDemo 
+                    ? "Welcome to the demo! I'm your AI Guardian. Try clicking on the vitals to see improvement tasks, or start a breathing session."
+                    : "I notice your stress levels have been manageable today. Great work on that morning routine! Would you like a quick focus boost?"
+                  }
                 </p>
               </div>
             </div>
@@ -291,6 +392,23 @@ const Dashboard = () => {
           </GlassCard>
         </div>
       )}
+
+      {/* Sheets & Modals */}
+      <ProfileSheet open={showProfile} onOpenChange={setShowProfile} isDemo={isDemo} />
+      <SettingsSheet open={showSettings} onOpenChange={setShowSettings} />
+      <NotificationsSheet open={showNotifications} onOpenChange={setShowNotifications} />
+      <ImprovementTasks 
+        open={improvementSheet.open} 
+        onOpenChange={(open) => setImprovementSheet((prev) => ({ ...prev, open }))}
+        vitalType={improvementSheet.type}
+      />
+      <SessionGuide
+        open={sessionGuide.open}
+        onOpenChange={(open) => setSessionGuide((prev) => ({ ...prev, open }))}
+        sessionType={sessionGuide.type}
+        title={sessionGuide.title}
+        duration={sessionGuide.duration}
+      />
     </div>
   );
 };
