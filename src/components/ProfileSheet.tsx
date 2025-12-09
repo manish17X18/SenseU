@@ -1,32 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { User, Mail, Save, Edit2, LogOut } from "lucide-react";
+import { User, Mail, Save, Edit2, LogOut, FileText, Camera } from "lucide-react";
 import NeonButton from "./NeonButton";
 import NeonInput from "./NeonInput";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
 interface ProfileData {
   name: string;
   email: string;
+  bio: string;
+  avatarUrl: string;
 }
 
 interface ProfileSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isDemo?: boolean;
+  userData?: {
+    name?: string;
+    email?: string;
+  };
 }
 
-export default function ProfileSheet({ open, onOpenChange, isDemo = false }: ProfileSheetProps) {
+export default function ProfileSheet({ open, onOpenChange, isDemo = false, userData }: ProfileSheetProps) {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
-    name: isDemo ? "Demo Student" : "John Doe",
-    email: isDemo ? "demo@neuroaura.app" : "john.doe@university.edu",
+    name: "",
+    email: "",
+    bio: "",
+    avatarUrl: "",
   });
 
+  // Load user data when sheet opens or userData changes
+  useEffect(() => {
+    if (userData) {
+      setProfile({
+        name: userData.name || "",
+        email: userData.email || "",
+        bio: localStorage.getItem("neuroaura_bio") || "",
+        avatarUrl: localStorage.getItem("neuroaura_avatar") || "",
+      });
+    } else if (isDemo) {
+      setProfile({
+        name: "Demo Student",
+        email: "demo@neuroaura.app",
+        bio: "This is a demo account showcasing NeuroAura features.",
+        avatarUrl: "",
+      });
+    } else {
+      // Load from localStorage if no userData provided
+      setProfile({
+        name: localStorage.getItem("neuroaura_name") || "",
+        email: localStorage.getItem("neuroaura_email") || "",
+        bio: localStorage.getItem("neuroaura_bio") || "",
+        avatarUrl: localStorage.getItem("neuroaura_avatar") || "",
+      });
+    }
+  }, [userData, isDemo, open]);
+
   const handleSave = () => {
+    // Save to localStorage
+    localStorage.setItem("neuroaura_name", profile.name);
+    localStorage.setItem("neuroaura_email", profile.email);
+    localStorage.setItem("neuroaura_bio", profile.bio);
+    if (profile.avatarUrl) {
+      localStorage.setItem("neuroaura_avatar", profile.avatarUrl);
+    }
+    
     setIsEditing(false);
     toast({
       title: "Profile Updated",
@@ -35,6 +79,12 @@ export default function ProfileSheet({ open, onOpenChange, isDemo = false }: Pro
   };
 
   const handleLogout = () => {
+    // Clear user data
+    localStorage.removeItem("neuroaura_name");
+    localStorage.removeItem("neuroaura_email");
+    localStorage.removeItem("neuroaura_bio");
+    localStorage.removeItem("neuroaura_avatar");
+    
     onOpenChange(false);
     toast({
       title: "Logged Out",
@@ -43,10 +93,21 @@ export default function ProfileSheet({ open, onOpenChange, isDemo = false }: Pro
     navigate("/");
   };
 
-  const fields = [
-    { key: "name", label: "Full Name", icon: User, type: "text" },
-    { key: "email", label: "Email", icon: Mail, type: "email" },
-  ];
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfile({ ...profile, avatarUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getInitials = () => {
+    if (!profile.name) return "?";
+    return profile.name.split(" ").map(n => n[0]).join("").toUpperCase();
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -69,37 +130,99 @@ export default function ProfileSheet({ open, onOpenChange, isDemo = false }: Pro
 
           {/* Avatar */}
           <div className="flex flex-col items-center py-6">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.3)]">
-              <span className="text-3xl font-orbitron text-primary">
-                {profile.name.split(" ").map(n => n[0]).join("")}
-              </span>
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.3)] overflow-hidden">
+                {profile.avatarUrl ? (
+                  <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-3xl font-orbitron text-primary">
+                    {getInitials()}
+                  </span>
+                )}
+              </div>
+              {isEditing && (
+                <label className="absolute bottom-0 right-0 p-2 rounded-full bg-primary cursor-pointer hover:bg-primary/80 transition-colors">
+                  <Camera className="w-4 h-4 text-primary-foreground" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleAvatarChange}
+                  />
+                </label>
+              )}
             </div>
-            <p className="mt-4 font-orbitron text-lg text-foreground">{profile.name}</p>
-            <p className="text-sm text-muted-foreground">{profile.email}</p>
+            <p className="mt-4 font-orbitron text-lg text-foreground">
+              {profile.name || "No name set"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {profile.email || "No email set"}
+            </p>
           </div>
         </SheetHeader>
 
         <div className="space-y-4 mt-6">
-          {fields.map((field) => (
-            <div key={field.key} className="space-y-2">
-              <label className="text-xs font-orbitron uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <field.icon className="w-3 h-3" />
-                {field.label}
-              </label>
-              {isEditing ? (
-                <NeonInput
-                  type={field.type}
-                  value={profile[field.key as keyof ProfileData]}
-                  onChange={(e) => setProfile({ ...profile, [field.key]: e.target.value })}
-                  className="w-full"
-                />
-              ) : (
-                <div className="px-4 py-3 rounded-xl bg-muted/20 border border-border/30 text-foreground">
-                  {profile[field.key as keyof ProfileData]}
-                </div>
-              )}
-            </div>
-          ))}
+          {/* Name Field */}
+          <div className="space-y-2">
+            <label className="text-xs font-orbitron uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <User className="w-3 h-3" />
+              Full Name
+            </label>
+            {isEditing ? (
+              <NeonInput
+                type="text"
+                value={profile.name}
+                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                placeholder="Enter your name"
+                className="w-full"
+              />
+            ) : (
+              <div className="px-4 py-3 rounded-xl bg-muted/20 border border-border/30 text-foreground">
+                {profile.name || <span className="text-muted-foreground italic">Not set</span>}
+              </div>
+            )}
+          </div>
+
+          {/* Email Field */}
+          <div className="space-y-2">
+            <label className="text-xs font-orbitron uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Mail className="w-3 h-3" />
+              Email
+            </label>
+            {isEditing ? (
+              <NeonInput
+                type="email"
+                value={profile.email}
+                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                placeholder="Enter your email"
+                className="w-full"
+              />
+            ) : (
+              <div className="px-4 py-3 rounded-xl bg-muted/20 border border-border/30 text-foreground">
+                {profile.email || <span className="text-muted-foreground italic">Not set</span>}
+              </div>
+            )}
+          </div>
+
+          {/* Bio Field */}
+          <div className="space-y-2">
+            <label className="text-xs font-orbitron uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <FileText className="w-3 h-3" />
+              Bio (Optional)
+            </label>
+            {isEditing ? (
+              <Textarea
+                value={profile.bio}
+                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                placeholder="Tell us about yourself..."
+                className="w-full bg-muted/30 border-border/30 focus:border-primary/50 min-h-[80px]"
+              />
+            ) : (
+              <div className="px-4 py-3 rounded-xl bg-muted/20 border border-border/30 text-foreground min-h-[60px]">
+                {profile.bio || <span className="text-muted-foreground italic">No bio added</span>}
+              </div>
+            )}
+          </div>
 
           {isEditing && (
             <div className="pt-4">
