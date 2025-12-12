@@ -1,3 +1,4 @@
+// Dashboard - Main application screen
 import { useState, useEffect, useCallback, memo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { 
