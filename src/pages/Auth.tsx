@@ -32,33 +32,17 @@ const Auth = () => {
     }
   }, [searchParams]);
 
-  // Check if already logged in
+  // Only redirect on explicit sign-in events, not on page load
   useEffect(() => {
     let mounted = true;
     
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted && session) {
-          const hasCompletedAssessment = localStorage.getItem("neuroaura_assessment_done");
-          if (hasCompletedAssessment) {
-            navigate("/dashboard", { replace: true });
-          } else {
-            navigate("/assessment", { replace: true });
-          }
-        }
-      } finally {
-        if (mounted) {
-          setIsCheckingAuth(false);
-        }
-      }
-    };
-
-    checkSession();
+    // Just stop checking auth, don't auto-redirect
+    setIsCheckingAuth(false);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       
+      // Only redirect on explicit SIGNED_IN event (after user action)
       if (session && event === 'SIGNED_IN') {
         if (session.user?.user_metadata?.name) {
           localStorage.setItem("neuroaura_name", session.user.user_metadata.name);
@@ -69,7 +53,7 @@ const Auth = () => {
         
         const hasCompletedAssessment = localStorage.getItem("neuroaura_assessment_done");
         
-        if (!isLogin || !hasCompletedAssessment) {
+        if (!hasCompletedAssessment) {
           navigate("/assessment", { replace: true });
         } else {
           navigate("/dashboard", { replace: true });
@@ -81,7 +65,7 @@ const Auth = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate, isLogin]);
+  }, [navigate]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
