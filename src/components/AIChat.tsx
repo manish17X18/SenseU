@@ -204,9 +204,9 @@ export default function AIChat({ isOpen, onClose, isDemo = false }: AIChatProps)
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary animate-pulse" />
             <div>
-              <h4 className="font-orbitron font-semibold text-sm">AI Guardian</h4>
+              <h4 className="font-orbitron font-semibold text-sm text-gradient">Aurora</h4>
               <p className="text-xs text-muted-foreground">
-                {isLoading ? "Thinking..." : "Ask me anything!"}
+                {isLoading ? "Thinking..." : "Your AI Guardian 💫"}
               </p>
             </div>
           </div>

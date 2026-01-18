@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   ArrowRight, 
   Brain, 
@@ -8,15 +8,18 @@ import {
   Moon,
   Zap,
   CheckCircle,
-  GraduationCap
+  GraduationCap,
+  UserPlus,
+  LogIn
 } from "lucide-react";
 import ParticleBackground from "@/components/ParticleBackground";
 import GlassCard from "@/components/GlassCard";
 import NeonButton from "@/components/NeonButton";
 import AIGuardianOrb from "@/components/AIGuardianOrb";
-import DemoTour from "@/components/DemoTour";
+import DemoPreview from "@/components/DemoPreview";
+import { PrivacyModal, TermsModal, ContactModal } from "@/components/FooterModals";
 import { cn } from "@/lib/utils";
-import { useState, memo } from "react";
+import { useState, memo, useEffect } from "react";
 
 // Memoized feature card
 const FeatureCard = memo(({ feature }: { feature: any }) => (
@@ -53,7 +56,18 @@ FeatureCard.displayName = "FeatureCard";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showDemoTour, setShowDemoTour] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+
+  // Check for signup param
+  useEffect(() => {
+    if (searchParams.get("signup") === "true") {
+      navigate("/auth?mode=signup");
+    }
+  }, [searchParams, navigate]);
 
   const features = [
     {
@@ -116,15 +130,18 @@ const Index = () => {
           </div>
           <span className="font-orbitron font-bold text-lg text-gradient">NeuroAura</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/auth")}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+            onClick={() => navigate("/auth?mode=login")}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium border border-border/30 rounded-lg hover:border-primary/30"
           >
-            Login
+            <LogIn className="w-4 h-4" />
+            <span className="hidden sm:inline">Login</span>
           </button>
-          <NeonButton onClick={() => navigate("/auth")} size="sm">
-            Get Started
+          <NeonButton onClick={() => navigate("/auth?mode=signup")} size="sm">
+            <UserPlus className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Sign Up</span>
+            <span className="sm:hidden">Join</span>
           </NeonButton>
         </div>
       </nav>
@@ -163,7 +180,7 @@ const Index = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <NeonButton onClick={() => navigate("/auth")} size="lg" className="group">
+            <NeonButton onClick={() => navigate("/auth?mode=signup")} size="lg" className="group">
               <span className="flex items-center gap-2">
                 Begin Your Journey
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -271,7 +288,7 @@ const Index = () => {
               Join thousands of students who have taken control of their mental health with NeuroAura.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <NeonButton onClick={() => navigate("/auth")} size="lg">
+              <NeonButton onClick={() => navigate("/auth?mode=signup")} size="lg">
                 Start Free Trial
               </NeonButton>
               <NeonButton variant="ghost" size="lg" onClick={handleShowDemo}>
@@ -294,26 +311,40 @@ const Index = () => {
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button 
+              onClick={() => setShowPrivacy(true)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Privacy
-            </a>
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </button>
+            <button 
+              onClick={() => setShowTerms(true)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Terms
-            </a>
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </button>
+            <button 
+              onClick={() => setShowContact(true)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Contact
-            </a>
+            </button>
           </div>
           <div className="text-xs text-muted-foreground/50 font-orbitron">v2.0.1</div>
         </div>
       </footer>
 
-      {/* Demo Tour */}
-      <DemoTour 
+      {/* Demo Preview */}
+      <DemoPreview 
         open={showDemoTour} 
         onOpenChange={setShowDemoTour}
         onComplete={handleDemoComplete}
       />
+
+      {/* Footer Modals */}
+      <PrivacyModal open={showPrivacy} onOpenChange={setShowPrivacy} />
+      <TermsModal open={showTerms} onOpenChange={setShowTerms} />
+      <ContactModal open={showContact} onOpenChange={setShowContact} />
     </div>
   );
 };

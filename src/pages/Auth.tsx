@@ -12,7 +12,10 @@ import { supabase } from "@/integrations/supabase/client";
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [isLogin, setIsLogin] = useState(true);
+  
+  // Check URL param for initial mode
+  const initialMode = searchParams.get("mode");
+  const [isLogin, setIsLogin] = useState(initialMode !== "signup");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showVerified, setShowVerified] = useState(false);
@@ -25,10 +28,17 @@ const Auth = () => {
     password: "",
   });
 
-  // Check if coming from password reset
+  // Check URL params
   useEffect(() => {
     if (searchParams.get("reset") === "true") {
       setShowForgotPassword(true);
+    }
+    // Update login/signup mode based on URL
+    const mode = searchParams.get("mode");
+    if (mode === "signup") {
+      setIsLogin(false);
+    } else if (mode === "login") {
+      setIsLogin(true);
     }
   }, [searchParams]);
 

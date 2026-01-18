@@ -35,7 +35,8 @@ import SearchDialog from "@/components/SearchDialog";
 import AllSessionsSheet from "@/components/AllSessionsSheet";
 import AchievementsSheet from "@/components/AchievementsSheet";
 import SessionFeedback from "@/components/SessionFeedback";
-import MiniGame from "@/components/MiniGame";
+import SnakeGame from "@/components/SnakeGame";
+import HeaderMusicControls from "@/components/HeaderMusicControls";
 import EmergencySOS from "@/components/EmergencySOS";
 import { useRealtimeVitals } from "@/hooks/useRealtimeVitals";
 import { usePoints } from "@/hooks/usePoints";
@@ -219,6 +220,7 @@ const Dashboard = () => {
             <Search className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Search...</span>
           </button>
+          <HeaderMusicControls />
           <button onClick={() => setShowNotifications(true)} className="relative p-2 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors">
             <Bell className="w-5 h-5 text-muted-foreground" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
@@ -241,9 +243,10 @@ const Dashboard = () => {
           {/* Center Panel */}
           <div className="col-span-12 lg:col-span-6">
             <GlassCard className="h-full min-h-[500px] flex flex-col items-center justify-center relative overflow-visible">
-              {/* Mini Game instead of System Active */}
+              {/* Snake Game */}
               <div className="absolute top-4 left-4 right-4">
-                <MiniGame />
+                <SnakeGame />
+              </div>
               </div>
               
               <div className="relative flex items-center justify-center mt-24">
