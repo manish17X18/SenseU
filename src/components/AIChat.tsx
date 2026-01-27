@@ -197,12 +197,14 @@ export default function AIChat({ isOpen, onClose, isDemo = false }: AIChatProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-28 right-8 z-50 w-80 md:w-96 animate-scale-in">
-      <GlassCard className="max-h-[500px] flex flex-col bg-card/95 before:opacity-0 border border-border/70 backdrop-blur-2xl">
+    <div className="fixed bottom-28 right-8 z-50 w-96 md:w-[420px] animate-scale-in">
+      <GlassCard className="max-h-[600px] flex flex-col bg-card/95 before:opacity-0 border border-border/70 backdrop-blur-2xl">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border/30">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary animate-pulse" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <span className="text-lg">🌟</span>
+            </div>
             <div>
               <h4 className="font-orbitron font-semibold text-sm text-gradient">Aurora</h4>
               <p className="text-xs text-muted-foreground">
@@ -213,14 +215,14 @@ export default function AIChat({ isOpen, onClose, isDemo = false }: AIChatProps)
           <button
             onClick={onClose}
             aria-label="Close chat"
-            className="p-2 rounded-lg bg-muted/40 hover:bg-muted/60 border border-border/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/40"
           >
-            <X className="w-5 h-5 text-foreground" />
+            <X className="w-5 h-5 text-red-500" />
           </button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-3 max-h-72">
+        <div className="flex-1 overflow-y-auto py-4 space-y-3 max-h-[400px]">
           {messages.map((msg, i) => (
             <div
               key={i}
