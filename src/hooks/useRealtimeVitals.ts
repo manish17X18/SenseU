@@ -10,125 +10,118 @@ interface UseRealtimeVitalsOptions {
   baseStress?: number;
   baseFocus?: number;
   baseEnergy?: number;
-  updateInterval?: number;
 }
+
+// Get user-specific localStorage key
+const getUserKey = (key: string) => {
+  const userId = localStorage.getItem("neuroaura_user_id");
+  return userId ? `${key}:${userId}` : key;
+};
 
 export function useRealtimeVitals(options: UseRealtimeVitalsOptions = {}) {
   const {
     baseStress = 35,
     baseFocus = 75,
     baseEnergy = 65,
-    updateInterval = 5000, // Increased interval for performance
   } = options;
 
+  // Load the exact stress score from assessment - NO random variation
+  const getInitialStress = () => {
+    const storedStress = localStorage.getItem(getUserKey("neuroaura_stress_score"));
+    return storedStress ? parseInt(storedStress) : baseStress;
+  };
+
   const [vitals, setVitals] = useState<Vitals>({
-    stress: baseStress,
+    stress: getInitialStress(),
     focus: baseFocus,
     energy: baseEnergy,
   });
 
-  const typingSpeedRef = useRef(0);
-  const lastActivityRef = useRef(Date.now());
+  const lastDecayRef = useRef(Date.now());
   const isVisibleRef = useRef(true);
 
-  // Track user typing activity
-  const trackTyping = useCallback((wpm: number) => {
-    typingSpeedRef.current = wpm;
-    lastActivityRef.current = Date.now();
+  // Reduce stress when snake game is played (called externally)
+  const reduceStressFromGame = useCallback((amount: number = 5) => {
+    setVitals((prev) => {
+      const newStress = Math.max(1, prev.stress - amount); // Never go below 1
+      // Save to localStorage
+      localStorage.setItem(getUserKey("neuroaura_stress_score"), newStress.toString());
+      return {
+        ...prev,
+        stress: newStress,
+        focus: Math.min(100, prev.focus + 2),
+        energy: Math.min(100, prev.energy + 1),
+      };
+    });
   }, []);
 
-  // Track user clicks/activity - throttled
-  const trackActivity = useCallback(() => {
-    lastActivityRef.current = Date.now();
+  // Reduce stress when session is completed (called externally)
+  const reduceStressFromSession = useCallback((amount: number = 10) => {
+    setVitals((prev) => {
+      const newStress = Math.max(1, prev.stress - amount); // Never go below 1
+      // Save to localStorage
+      localStorage.setItem(getUserKey("neuroaura_stress_score"), newStress.toString());
+      return {
+        ...prev,
+        stress: newStress,
+        focus: Math.min(100, prev.focus + 5),
+        energy: Math.min(100, prev.energy + 3),
+      };
+    });
   }, []);
 
+  // Passive decay: 1% every 5 minutes if user is idle
   useEffect(() => {
-    // Visibility change handler
     const handleVisibilityChange = () => {
       isVisibleRef.current = !document.hidden;
+      if (!document.hidden) {
+        lastDecayRef.current = Date.now(); // Reset decay timer when returning
+      }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    const interval = setInterval(() => {
-      // Skip updates when tab is hidden
+    // Check every minute for 5-minute decay
+    const decayInterval = setInterval(() => {
       if (!isVisibleRef.current) return;
 
       const now = Date.now();
-      const idleTime = (now - lastActivityRef.current) / 1000;
-      const typingSpeed = typingSpeedRef.current;
+      const timeSinceLastDecay = now - lastDecayRef.current;
       
-      setVitals((prev) => {
-        let stressChange = 0;
-        let focusChange = 0;
-        let energyChange = 0;
-
-        // Fast typing increases stress slightly
-        if (typingSpeed > 60) {
-          stressChange += 2;
-          focusChange += 3;
-        } else if (typingSpeed > 40) {
-          stressChange += 1;
-          focusChange += 2;
-        } else if (typingSpeed > 0) {
-          focusChange += 1;
-        }
-
-        // Long idle time suggests rest or distraction
-        if (idleTime > 30) {
-          stressChange -= 2;
-          focusChange -= 3;
-          energyChange -= 1;
-        } else if (idleTime > 10) {
-          stressChange -= 1;
-          focusChange -= 1;
-        }
-
-        // Smaller variation for smoother updates
-        const variation = (Math.random() - 0.5) * 2;
-
-        const newStress = Math.min(100, Math.max(0, prev.stress + stressChange + variation * 0.3));
-        const newFocus = Math.min(100, Math.max(0, prev.focus + focusChange + variation * 0.2));
-        const newEnergy = Math.min(100, Math.max(0, prev.energy + energyChange + variation * 0.1));
-
-        return {
-          stress: Math.round(newStress),
-          focus: Math.round(newFocus),
-          energy: Math.round(newEnergy),
-        };
-      });
-    }, updateInterval);
+      // 5 minutes = 300000ms
+      if (timeSinceLastDecay >= 300000) {
+        setVitals((prev) => {
+          const newStress = Math.max(1, prev.stress - 1); // Decrease by 1%, never below 1
+          localStorage.setItem(getUserKey("neuroaura_stress_score"), newStress.toString());
+          return {
+            ...prev,
+            stress: newStress,
+          };
+        });
+        lastDecayRef.current = now;
+      }
+    }, 60000); // Check every minute
 
     return () => {
-      clearInterval(interval);
+      clearInterval(decayInterval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [updateInterval]);
+  }, []);
 
-  // Throttled activity listeners
+  // Sync with localStorage on mount (in case it changed elsewhere)
   useEffect(() => {
-    let throttleTimer: NodeJS.Timeout | null = null;
-    
-    const throttledActivity = () => {
-      if (throttleTimer) return;
-      throttleTimer = setTimeout(() => {
-        trackActivity();
-        throttleTimer = null;
-      }, 1000);
-    };
-    
-    window.addEventListener("mousemove", throttledActivity, { passive: true });
-    window.addEventListener("click", throttledActivity, { passive: true });
-
-    return () => {
-      window.removeEventListener("mousemove", throttledActivity);
-      window.removeEventListener("click", throttledActivity);
-      if (throttleTimer) clearTimeout(throttleTimer);
-    };
-  }, [trackActivity]);
+    const storedStress = localStorage.getItem(getUserKey("neuroaura_stress_score"));
+    if (storedStress) {
+      const parsedStress = parseInt(storedStress);
+      setVitals((prev) => ({
+        ...prev,
+        stress: parsedStress,
+      }));
+    }
+  }, []);
 
   return {
     vitals,
-    trackTyping,
-    trackActivity,
+    reduceStressFromGame,
+    reduceStressFromSession,
   };
 }

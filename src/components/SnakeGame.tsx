@@ -4,6 +4,7 @@ import { Sparkles, Star, Trophy, RotateCcw, ArrowUp, ArrowDown, ArrowLeft, Arrow
 
 interface SnakeGameProps {
   className?: string;
+  onScoreChange?: (score: number) => void;
 }
 
 type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT";
@@ -20,7 +21,7 @@ const GRID_SIZE = 14;
 const INITIAL_SPEED = 180;
 const MIN_SPEED = 80;
 
-const SnakeGame = memo(({ className }: SnakeGameProps) => {
+const SnakeGame = memo(({ className, onScoreChange }: SnakeGameProps) => {
   const [snake, setSnake] = useState<Position[]>([{ x: 7, y: 7 }]);
   const [food, setFood] = useState<Position>({ x: 3, y: 3 });
   const [powerUp, setPowerUp] = useState<PowerUp | null>(null);
@@ -112,6 +113,13 @@ const SnakeGame = memo(({ className }: SnakeGameProps) => {
     return () => clearTimeout(timeout);
   }, [powerUp]);
 
+  // Notify parent when score changes (for stress reduction)
+  useEffect(() => {
+    if (score > 0 && onScoreChange) {
+      onScoreChange(score);
+    }
+  }, [score, onScoreChange]);
+
   const moveSnake = useCallback(() => {
     setSnake(prevSnake => {
       const head = prevSnake[0];
@@ -135,18 +143,13 @@ const SnakeGame = memo(({ className }: SnakeGameProps) => {
           return prevSnake;
       }
 
-      // Check wall collision
-      if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
-        setIsPlaying(false);
-        setGameOver(true);
-        if (score > highScore) {
-          setHighScore(score);
-          localStorage.setItem("neuroaura_snake_highscore", score.toString());
-        }
-        return prevSnake;
-      }
+      // Wall wrapping - snake passes through walls and comes out the other side
+      if (newHead.x < 0) newHead.x = GRID_SIZE - 1;
+      if (newHead.x >= GRID_SIZE) newHead.x = 0;
+      if (newHead.y < 0) newHead.y = GRID_SIZE - 1;
+      if (newHead.y >= GRID_SIZE) newHead.y = 0;
 
-      // Check self collision
+      // Check self collision (only way to die now)
       if (prevSnake.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
         setIsPlaying(false);
         setGameOver(true);

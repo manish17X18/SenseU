@@ -187,6 +187,20 @@ export function ContactModal({ open, onOpenChange }: FooterModalProps) {
             </div>
           </div>
 
+          {/* Horizontal Line */}
+          <div className="border-t border-border/50 my-4" />
+
+          {/* Team Section */}
+          <div className="text-center">
+            <h3 className="text-sm font-orbitron font-semibold text-foreground mb-3">My Team</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>Pratiksha S Meti</li>
+              <li>Anwesha Nagaraj</li>
+              <li>Abhay Rao</li>
+              <li>Ishan Sahoo</li>
+            </ul>
+          </div>
+
           <div className="pt-4 border-t border-border/30">
             <p className="text-xs text-center text-muted-foreground">
               Have questions or feedback? Feel free to reach out. We typically respond within 24-48 hours.

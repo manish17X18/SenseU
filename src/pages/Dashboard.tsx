@@ -41,16 +41,21 @@ import { usePoints } from "@/hooks/usePoints";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-// Get stored assessment vitals
+// Get user-specific localStorage key
+const getUserKey = (key: string) => {
+  const userId = localStorage.getItem("neuroaura_user_id");
+  return userId ? `${key}:${userId}` : key;
+};
+
+// Get stored assessment vitals - EXACT values, no randomization
 const getAssessmentVitals = () => {
-  const storedStress = localStorage.getItem("neuroaura_stress_score");
-  const storedMood = localStorage.getItem("neuroaura_mood");
+  const storedStress = localStorage.getItem(getUserKey("neuroaura_stress_score"));
   
   const stressScore = storedStress ? parseInt(storedStress) : 35;
   
-  // Derive other vitals from stress score
-  const focus = Math.max(20, 100 - stressScore - Math.floor(Math.random() * 10));
-  const energy = Math.max(30, 90 - (stressScore * 0.5) - Math.floor(Math.random() * 15));
+  // Derive other vitals deterministically from stress score (no random)
+  const focus = Math.max(20, 100 - stressScore - 5);
+  const energy = Math.max(30, 90 - Math.floor(stressScore * 0.5) - 10);
   
   return {
     baseStress: stressScore,
@@ -97,7 +102,7 @@ const Dashboard = () => {
   // Get vitals based on assessment answers
   const assessmentVitals = getAssessmentVitals();
   
-  const { vitals } = useRealtimeVitals(assessmentVitals);
+  const { vitals, reduceStressFromGame, reduceStressFromSession } = useRealtimeVitals(assessmentVitals);
 
   const { points, addPoints, achievements } = usePoints();
 
@@ -171,14 +176,18 @@ const Dashboard = () => {
     const sessionPoints = completedSession?.type === "focus" ? 25 : completedSession?.type === "breathe" ? 15 : 20;
     addPoints(sessionPoints, `Completed ${completedSession?.title}`);
     
+    // Reduce stress when session is completed
+    const stressReduction = completedSession?.type === "focus" ? 8 : completedSession?.type === "breathe" ? 12 : 10;
+    reduceStressFromSession(stressReduction);
+    
     setShowFeedback(false);
     setCompletedSession(null);
     
     toast({
       title: "Session Complete! 🎉",
-      description: `+${sessionPoints} points earned. Keep up the great work!`,
+      description: `+${sessionPoints} points earned. Stress reduced! Keep up the great work!`,
     });
-  }, [completedSession, addPoints]);
+  }, [completedSession, addPoints, reduceStressFromSession]);
   
   const handleImprove = useCallback((type: "stress" | "focus" | "energy" | "sleep" | "mood") => {
     setImprovementSheet({ open: true, type });
@@ -249,7 +258,12 @@ const Dashboard = () => {
             <GlassCard className="h-full min-h-[500px] flex flex-col items-center justify-start relative overflow-visible pt-4">
               {/* Snake Game - Top */}
               <div className="w-full px-4 mb-6">
-                <SnakeGame />
+                <SnakeGame onScoreChange={(score) => {
+                  // Reduce stress every 50 points earned
+                  if (score > 0 && score % 50 === 0) {
+                    reduceStressFromGame(3);
+                  }
+                }} />
               </div>
               
               {/* Stress Aura Circle - Centered */}
