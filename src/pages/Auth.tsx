@@ -8,6 +8,7 @@ import NeonButton from "@/components/NeonButton";
 import ForgotPassword from "@/components/ForgotPassword";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -144,20 +145,17 @@ const Auth = () => {
   }, [formData, isLogin]);
 
   const handleGoogleSignIn = useCallback(async () => {
-  try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth`,
-      },
-    });
+    try {
+      const { error } = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
 
-    if (error) throw error;
-  } catch (error: any) {
-    console.error("Google sign in error:", error);
-    toast.error(error.message || "Failed to sign in with Google");
-  }
-}, []);
+      if (error) throw error;
+    } catch (error: any) {
+      console.error("Google sign in error:", error);
+      toast.error(error.message || "Failed to sign in with Google");
+    }
+  }, []);
 
 
   if (isCheckingAuth) {
